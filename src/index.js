@@ -57,7 +57,7 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 	function fetchEachLink( _link, _done ) {
 		// Pick out the new Moldy model.
 		var schema = schemas[ _link.type ];
-		if ( !schema ) return _done( 'Schema ' + _link.type + ' not defined' );
+		if ( !schema ) return _done( new Error( 'Schema ' + _link.type + ' not defined' ) );
 
 		// Create our query based on the linked structure.
 		var query = {};
