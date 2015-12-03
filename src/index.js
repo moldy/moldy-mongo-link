@@ -87,6 +87,8 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 					references: references
 				}, _eDone );
 			}, function ( _error, _links ) {
+				if ( _error ) return _done( _error );
+				
 				// Add each dependency-resolved item into the parent object.
 				data[ linkTagName ][ _link.type ] = _links.map( function ( _link ) {
 					return _link.data;
