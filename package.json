@@ -1,0 +1,16 @@
+{
+  "name": "moldy-mongo-link",
+  "version": "1.0.0",
+  "description": "Link Mongo connections together using Moldy.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "git@github.com:moldy/moldy-mongo-link.git",
+  "author": "Ash Kyd <akyd@iix.net>",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^1.5.0",
+    "ejs": "^2.3.4"
+  }
+}
