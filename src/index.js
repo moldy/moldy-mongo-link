@@ -1,3 +1,23 @@
+function performSubstitutions(value, data){
+	var ejs = require( 'ejs' );
+	if(typeof value === 'object'){
+		Object.keys(value).forEach(function(_key){
+		if(value[_key] instanceof Array){
+			value[_key] = value[_key].map(function(_arrayItem){
+				return performSubstitutions(_arrayItem, data);
+			});
+		} else if(typeof value[_key] === 'object'){
+				value[_key] = performSubstitutions(value[_key], data);
+			} else {
+				value[ _key ] = ejs.compile( value[ _key ] )( data );
+			}
+		});
+	} else {
+			value = ejs.compile( value )( data );
+	}
+	return value;
+}
+
 /**
  * Resolve Moldy dependencies
  * @param {Object} _options -
@@ -14,7 +34,6 @@
  */
 var fetchDependencies = module.exports = function ( _options, _callback ) {
 	var async = require( 'async' );
-	var ejs = require( 'ejs' );
 	var moldyObject = _options.moldyObject;
 	var schemas = _options.schemas;
 	var moldy = moldyObject.__moldy;
@@ -44,8 +63,7 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 		var query = {};
 		Object.keys( _link.where ).forEach( function ( _key ) {
 			// Parse values with ejs so we can pull values off 'this'.
-			var value = ejs.compile( _link.where[ _key ] )( data );
-			query[ _key ] = value;
+			query[ _key ] = performSubstitutions(_link.where[_key], data);
 		} );
 
 		// Don't requery this thing if we've done it before. (Quick way to prevent loops.)
