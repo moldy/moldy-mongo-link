@@ -6,11 +6,25 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "git@github.com:moldy/moldy-mongo-link.git",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/moldy/moldy-mongo-link.git"
+  },
   "author": "Ash Kyd <akyd@iix.net>",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "async": "^1.5.0",
     "ejs": "^2.3.4"
-  }
+  },
+  "bugs": {
+    "url": "https://github.com/moldy/moldy-mongo-link/issues"
+  },
+  "homepage": "https://github.com/moldy/moldy-mongo-link#readme",
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "moldy"
+  ]
 }
