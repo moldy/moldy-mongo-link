@@ -1,5 +1,8 @@
+var extend = require('extend');
+var ejs = require('ejs');
+var async = require('async');
+
 function performSubstitutions( value, data ) {
-	var ejs = require( 'ejs' );
 	if ( typeof value === 'object' ) {
 		Object.keys( value ).forEach( function ( _key ) {
 			if ( value[ _key ] instanceof Array ) {
@@ -33,7 +36,6 @@ function performSubstitutions( value, data ) {
  * }, function( _error, _jsonWithDependencies ) {} )
  */
 var fetchDependencies = module.exports = function ( _options, _callback ) {
-	var async = require( 'async' );
 	var moldyObject = _options.moldyObject;
 	var schemas = _options.schemas;
 	var moldy = moldyObject.__moldy;
@@ -49,7 +51,7 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 	}
 
 	// Load up the links we need to resolve.
-	var links = moldy.__custom[ 'links' + _options.linkType ];
+	var links = extend(true, {}, moldy.__custom[ 'links' + _options.linkType ]);
 	data[ linkTagName ] = {};
 
 	// For each link we want to resolve, we need to query it recursively.
@@ -88,7 +90,7 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 				}, _eDone );
 			}, function ( _error, _links ) {
 				if ( _error ) return _done( _error );
-				
+
 				// Add each dependency-resolved item into the parent object.
 				data[ linkTagName ][ _link.type ] = _links.map( function ( _link ) {
 					return _link.data;
