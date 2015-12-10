@@ -8,12 +8,13 @@
   "forin": true,
   "newcap": true,
   "sub": true,
-  "undef": false,
+  "undef": true,
   "boss": true,
   "strict": false,
-  "unused": false,
+  "unused": true,
   "eqnull": true,
   "node": true,
+  "mocha": true,
   "browser": true,
   "expr": "warn"
 }
