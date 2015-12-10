@@ -69,8 +69,9 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 		} );
 
 		// Don't requery this thing if we've done it before. (Quick way to prevent loops.)
-		if ( references[ JSON.stringify( query ) ] ) return _done();
-		references[ JSON.stringify( query ) ] = true;
+		var queryKey = _link.type + JSON.stringify( query );
+		if ( references[ queryKey ] ) return _done();
+		references[ queryKey ] = true;
 
 		// only $findOne has id to ObjectId conversion.
 		var findMethod = query.id ? '$findOne' : '$find';
