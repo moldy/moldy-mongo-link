@@ -1,8 +1,9 @@
-var extend = require('extend');
-var ejs = require('ejs');
-var async = require('async');
+var extend = require( 'extend' );
+ejs = require( 'ejs' ),
+	async = require( 'async' ),
+	bson = require( 'bson' );
 
-function performSubstitutions( value, data ) {
+function performSubstitutions( value, data, parent ) {
 	if ( typeof value === 'object' ) {
 		Object.keys( value ).forEach( function ( _key ) {
 			if ( value[ _key ] instanceof Array ) {
@@ -10,9 +11,13 @@ function performSubstitutions( value, data ) {
 					return performSubstitutions( _arrayItem, data );
 				} );
 			} else if ( typeof value[ _key ] === 'object' ) {
-				value[ _key ] = performSubstitutions( value[ _key ], data );
+				value[ _key ] = performSubstitutions( value[ _key ], data, _key );
 			} else {
 				value[ _key ] = ejs.compile( value[ _key ] )( data );
+				// Parse string $in values to get the values out.
+				if ( _key === '$in' ) {
+					value[ _key ] = value[ _key ].split( ',' );
+				}
 			}
 		} );
 	} else {
@@ -37,12 +42,13 @@ function performSubstitutions( value, data ) {
  */
 var fetchDependencies = module.exports = function ( _options, _callback ) {
 	var moldyObject = _options.moldyObject;
-	if(!moldyObject) return _callback();
+	if ( !moldyObject ) return _callback();
 	var schemas = _options.schemas;
 	var moldy = moldyObject.__moldy;
 	var data = moldyObject.$json();
 	var linkTagName = 'links' + _options.linkType;
 	var references = _options.references || {};
+	_options.dependencies = _options.dependencies || {};
 
 	// If there's no custom fields, don't do anything.
 	if ( !moldy.__custom || !moldy.__custom[ linkTagName ] ) {
@@ -52,8 +58,8 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 	}
 
 	// Load up the links we need to resolve.
-	var links = extend(true, {}, moldy.__custom[ 'links' + _options.linkType ]);
-	data[ linkTagName ] = {};
+	var links = extend( true, {}, moldy.__custom[ 'links' + _options.linkType ] );
+
 
 	// For each link we want to resolve, we need to query it recursively.
 	// This is kicked off below in the async.eachSeries
@@ -61,12 +67,13 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 		// Pick out the new Moldy model.
 		var schema = schemas[ _link.type ];
 		if ( !schema ) return _done( new Error( 'Schema ' + _link.type + ' not defined' ) );
+		_options.dependencies[ _link.type ] = _options.dependencies[ _link.type ] || {};
 
 		// Create our query based on the linked structure.
 		var query = {};
 		Object.keys( _link.where ).forEach( function ( _key ) {
 			// Parse values with ejs so we can pull values off 'this'.
-			query[ _key ] = performSubstitutions( _link.where[ _key ], data );
+			query[ _key ] = performSubstitutions( _link.where[ _key ], data, _key );
 		} );
 
 		// Don't requery this thing if we've done it before. (Quick way to prevent loops.)
@@ -75,7 +82,18 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 		references[ queryKey ] = true;
 
 		// only $findOne has id to ObjectId conversion.
-		var findMethod = query.id ? '$findOne' : '$find';
+		var findMethod;
+		if ( query.id && query.id.$in && query.id.$in instanceof Array ) {
+			// Encode MongoDB IDs in a $in statement.
+			findMethod = '$find';
+			query._id = query.id;
+			delete query.id;
+			query._id.$in = query._id.$in.map( function ( _item ) {
+				return bson.ObjectId( _item );
+			} );
+		} else {
+			findMethod = query.id && !query.id.$in ? '$findOne' : '$find';
+		}
 
 		schema[ findMethod ]( query, function ( _error, _items ) {
 			if ( _error ) return _done( _error );
@@ -88,18 +106,18 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 					moldyObject: _item,
 					linkType: _options.linkType,
 					schemas: _options.schemas,
-					references: references
+					references: references,
+					dependencies: _options.dependencies
 				}, _eDone );
 			}, function ( _error, _links ) {
 				if ( _error ) return _done( _error );
-
 				// Add each dependency-resolved item into the parent object.
-				data[ linkTagName ][ _link.type ] = _links.filter(function(_link){
-					return _link && _link.data;
-				}).map( function ( _link ) {
-					return _link.data;
+				Object.keys( _links ).filter( function ( _key ) {
+					return _links[ _key ] && _links[ _key ].data;
+				} ).forEach( function ( _key ) {
+					_options.dependencies[ _link.type ][ _links[ _key ].data.id ] =  _links[ _key ].data;
 				} );
-				_done( _error, _links );
+				_done( _error, _options.dependencies );
 			} );
 		} );
 
@@ -107,10 +125,10 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 
 	// Once all the links have been resolved, return 'em.
 	function onceFetchCompleted( _error ) {
-		if ( _options.references ) {
+		if ( _options.dependencies ) {
 			_callback( _error, {
 				data: data,
-				references: references
+				references: _options.dependencies
 			} );
 		} else {
 			_callback( _error, data );
