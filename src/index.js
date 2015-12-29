@@ -37,6 +37,7 @@ function performSubstitutions( value, data ) {
  */
 var fetchDependencies = module.exports = function ( _options, _callback ) {
 	var moldyObject = _options.moldyObject;
+	if(!moldyObject) return _callback();
 	var schemas = _options.schemas;
 	var moldy = moldyObject.__moldy;
 	var data = moldyObject.$json();
@@ -69,8 +70,9 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 		} );
 
 		// Don't requery this thing if we've done it before. (Quick way to prevent loops.)
-		if ( references[ JSON.stringify( query ) ] ) return _done();
-		references[ JSON.stringify( query ) ] = true;
+		var queryKey = _link.type + JSON.stringify( query );
+		if ( references[ queryKey ] ) return _done();
+		references[ queryKey ] = true;
 
 		// only $findOne has id to ObjectId conversion.
 		var findMethod = query.id ? '$findOne' : '$find';
@@ -92,7 +94,9 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 				if ( _error ) return _done( _error );
 
 				// Add each dependency-resolved item into the parent object.
-				data[ linkTagName ][ _link.type ] = _links.map( function ( _link ) {
+				data[ linkTagName ][ _link.type ] = _links.filter(function(_link){
+					return _link && _link.data;
+				}).map( function ( _link ) {
 					return _link.data;
 				} );
 				_done( _error, _links );
