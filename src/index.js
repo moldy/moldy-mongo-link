@@ -14,9 +14,11 @@ function performSubstitutions( value, data, parent ) {
 				value[ _key ] = performSubstitutions( value[ _key ], data, _key );
 			} else {
 				value[ _key ] = ejs.compile( value[ _key ] )( data );
-				// Parse string $in values to get the values out.
+				// Parse string $in values to get the values out + remove empties.
 				if ( _key === '$in' ) {
-					value[ _key ] = value[ _key ].split( ',' );
+					value[ _key ] = value[ _key ].split( ',' ).filter(function(_item){
+						return _item;
+					});
 				}
 			}
 		} );
