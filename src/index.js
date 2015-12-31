@@ -1,24 +1,38 @@
 var extend = require( 'extend' );
 ejs = require( 'ejs' ),
 	async = require( 'async' ),
-	bson = require( 'bson' );
+	bson = require( 'bson' ),
+	dotty = require( 'dotty' );
 
-function performSubstitutions( value, data, parent ) {
+function performSubstitutions( value, data, parent, type ) {
 	if ( typeof value === 'object' ) {
 		Object.keys( value ).forEach( function ( _key ) {
+			var config = value[ _key ];
 			if ( value[ _key ] instanceof Array ) {
-				value[ _key ] = value[ _key ].map( function ( _arrayItem ) {
+				value[ _key ] = config.map( function ( _arrayItem ) {
 					return performSubstitutions( _arrayItem, data );
 				} );
-			} else if ( typeof value[ _key ] === 'object' ) {
-				value[ _key ] = performSubstitutions( value[ _key ], data, _key );
+			} else if ( _key === '$in' && typeof config === 'object' ) {
+				// Get a map of each $in value.
+				value[ _key ] = dotty.get( data, config.from ).map( function ( _thisItem ) {
+					// While we're at it, add our json-refs
+					if ( config.jsonref ) {
+						_thisItem[ type ] = {
+							$ref: '#/references/' + type + '/' + _thisItem[ config.jsonref ]
+						};
+					}
+					return ejs.compile( config.to )( _thisItem );
+				} );
+			} else if ( typeof config === 'object' ) {
+				// Traverse this object until we hit a key we can use.
+				value[ _key ] = performSubstitutions( config, data, _key );
 			} else {
-				value[ _key ] = ejs.compile( value[ _key ] )( data );
 				// Parse string $in values to get the values out + remove empties.
-				if ( _key === '$in' ) {
-					value[ _key ] = value[ _key ].split( ',' ).filter(function(_item){
-						return _item;
-					});
+				value[ _key ] = ejs.compile( config )( data );
+				if ( config.jsonref ) {
+					data[ type ] = {
+						$ref: '#/references/' + type + '/' + data[ config.jsonref ]
+					};
 				}
 			}
 		} );
@@ -75,7 +89,7 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 		var query = {};
 		Object.keys( _link.where ).forEach( function ( _key ) {
 			// Parse values with ejs so we can pull values off 'this'.
-			query[ _key ] = performSubstitutions( _link.where[ _key ], data, _key );
+			query[ _key ] = performSubstitutions( _link.where[ _key ], data, _key, _link.type );
 		} );
 
 		// Don't requery this thing if we've done it before. (Quick way to prevent loops.)
@@ -117,7 +131,7 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 				Object.keys( _links ).filter( function ( _key ) {
 					return _links[ _key ] && _links[ _key ].data;
 				} ).forEach( function ( _key ) {
-					_options.dependencies[ _link.type ][ _links[ _key ].data.id ] =  _links[ _key ].data;
+					_options.dependencies[ _link.type ][ _links[ _key ].data.id ] = _links[ _key ].data;
 				} );
 				_done( _error, _options.dependencies );
 			} );
