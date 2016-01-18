@@ -18,7 +18,7 @@ function performSubstitutions( value, data, parent, type ) {
 					// While we're at it, add our json-refs
 					if ( config.jsonref ) {
 						_thisItem[ type ] = {
-							$ref: '#/references/' + type + '/' + _thisItem[ config.jsonref ]
+							$ref: '#/__references/' + type + '/' + _thisItem[ config.jsonref ]
 						};
 					}
 					return ejs.compile( config.to )( _thisItem );
@@ -31,7 +31,7 @@ function performSubstitutions( value, data, parent, type ) {
 				value[ _key ] = ejs.compile( config )( data );
 				if ( config.jsonref ) {
 					data[ type ] = {
-						$ref: '#/references/' + type + '/' + data[ config.jsonref ]
+						$ref: '#/__references/' + type + '/' + data[ config.jsonref ]
 					};
 				}
 			}
@@ -64,12 +64,14 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 	var data = moldyObject.$json();
 	var linkTagName = 'links' + _options.linkType;
 	var references = _options.references || {};
+	_options.references = references;
 	_options.dependencies = _options.dependencies || {};
 
 	// If there's no custom fields, don't do anything.
 	if ( !moldy.__custom || !moldy.__custom[ linkTagName ] ) {
 		return _callback( null, _options.references ? {
-			data: data
+			data: data,
+			__references: _options.references,
 		} : data );
 	}
 
@@ -141,14 +143,10 @@ var fetchDependencies = module.exports = function ( _options, _callback ) {
 
 	// Once all the links have been resolved, return 'em.
 	function onceFetchCompleted( _error ) {
-		if ( _options.dependencies ) {
-			_callback( _error, {
-				data: data,
-				references: _options.dependencies
-			} );
-		} else {
-			_callback( _error, data );
-		}
+		_callback( _error, {
+			data: data,
+			__references: _options.dependencies
+		} );
 	}
 
 	// Start the search.
