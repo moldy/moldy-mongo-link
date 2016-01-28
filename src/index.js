@@ -1,5 +1,5 @@
-var extend = require( 'extend' );
-ejs = require( 'ejs' ),
+var extend = require( 'extend' ),
+	ejs = require( 'ejs' ),
 	async = require( 'async' ),
 	bson = require( 'bson' ),
 	dotty = require( 'dotty' );
