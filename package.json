@@ -1,6 +1,6 @@
 {
   "name": "moldy-mongo-link",
-  "version": "1.0.4",
+  "version": "2.0.1",
   "description": "Link Mongo connections together using Moldy.",
   "main": "src/index.js",
   "scripts": {
