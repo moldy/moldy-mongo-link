@@ -1,5 +1,7 @@
-var extend = require( 'extend' );
-ejs = require( 'ejs' ),
+'use strict';
+
+var extend = require( 'extend' ),
+	ejs = require( 'ejs' ),
 	async = require( 'async' ),
 	bson = require( 'bson' ),
 	dotty = require( 'dotty' );
@@ -13,8 +15,12 @@ function performSubstitutions( value, data, parent, type ) {
 					return performSubstitutions( _arrayItem, data );
 				} );
 			} else if ( _key === '$in' && typeof config === 'object' ) {
+				let dot = dotty.get( data, config.from );
+				if ( !dot ) {
+					console.error( 'missing $in reference. Going to crash now.', config.from, data );
+				}
 				// Get a map of each $in value.
-				value[ _key ] = dotty.get( data, config.from ).map( function ( _thisItem ) {
+				value[ _key ] = dot.map( function ( _thisItem ) {
 					// While we're at it, add our json-refs
 					if ( config.jsonref ) {
 						_thisItem[ type ] = {
