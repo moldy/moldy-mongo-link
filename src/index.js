@@ -16,7 +16,8 @@ function performSubstitutions( value, data, parent, type ) {
 				} );
 			} else if ( _key === '$in' && typeof config === 'object' ) {
 				let dot = dotty.get( data, config.from );
-				if ( !dot ) {
+				dot = dot === null ? [] : dot;
+				if ( typeof dot === 'undefined' ) {
 					console.error( 'missing $in reference. Going to crash now.', config.from, data );
 				}
 				// Get a map of each $in value.
